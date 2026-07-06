@@ -1,0 +1,333 @@
+﻿# Antigravity AI v3 -- Reglas para AI assistants
+# Proyecto: Vertex Studio | Tipo: landing
+
+Leer siempre .ai/STATE.md antes de responder.
+Seguir politicas AG-CORE del proyecto.
+Maximo 3 archivos por sesion de cambios.
+No agregar console.log ni print() en codigo de produccion.
+No dejar catch vacios -- siempre loguear el error.
+
+<!-- Los packs instalados agregan sus reglas a continuacion -->
+## Pack: quality (instalado: 2026-07-05)
+
+# Pack: quality â€” Reglas de Calidad de Codigo
+
+## Relacion con Antigravity
+
+ESLint/Prettier = enforcement automatico de reglas (AG-CORE/AG-QL) en cada save/commit.
+ReviewAgent = razonamiento sobre el contexto.
+ReviewAgent verifica codigos AG-CORE y AG-stack (lint del stack).
+La cadena correcta: Prettier formatea, ESLint detecta, ReviewAgent valida en contexto.
+
+---
+
+## QL-RULE-01: Prettier â€” Fuente Unica de Formato
+
+Prettier formatea. Las IAs NO deben cambiar indentacion, comillas ni punto y coma manualmente.
+Si hay conflicto entre lo que una IA escribe y Prettier: Prettier gana siempre.
+Configuracion en proyecto: prettier.config.js o .prettierrc.json (ver configs/).
+No usar reglas de ESLint que conflicten con Prettier â€” usar eslint-config-prettier.
+
+## QL-RULE-02: ESLint â€” Solo Errores que Prettier No Cubre
+
+ESLint para logica, no para formato.
+Reglas de formato en ESLint: desactivar con eslint-config-prettier.
+Reglas de logica a mantener:
+  - no-unused-vars / @typescript-eslint/no-unused-vars
+  - no-console (produccion)
+  - react-hooks/exhaustive-deps (React)
+  - @typescript-eslint/no-explicit-any
+  - security/* (eslint-plugin-security)
+
+## QL-RULE-03: EditorConfig â€” Base Unificada
+
+.editorconfig en la raiz del proyecto.
+Aplica a: VS Code, Cursor, Rider, Notepad++, cualquier editor.
+Define: indent_style, indent_size, end_of_line, charset, trim_trailing_whitespace.
+Es la base que todos los editores y todas las IAs deben respetar.
+
+## QL-RULE-04: Python â€” Ruff en lugar de Black + Flake8
+
+Para Python: usar Ruff (reemplaza Black + Flake8 + isort en un solo tool).
+Ruff es 100x mas rapido que sus equivalentes separados.
+Configurar en pyproject.toml:
+  [tool.ruff]
+  line-length = 88
+  select = ["E", "F", "I", "N", "S", "UP"]
+
+## QL-RULE-05: Integracion con Antigravity
+
+Al correr los linters del stack (eslint / ruff â€” instalados por Set-Enforcement):
+  - Si hay errores ESLint: registrar en STATE.md como MEDIUM si son warnings, HIGH si son errors.
+  - Si hay violaciones Prettier: las IAs NO deben arreglarlas manualmente â€” correr prettier --write.
+  - Violaciones de no-console: registrar como TODO_AI: AG-CORE-006 en el codigo.
+
+Antes de Close-Session (parte del Quality Gate AG-QA-STD-01 si el pack quality esta instalado):
+  - Correr lint del stack; si hay errores HIGH sin resolver, no marcar la tarea "Completado".
+  - (Nota: un wrapper unificado `Run-QualityCheck` esta en commands.json -> plannedCommands.)
+
+## QL-RULE-06: /simplify Skill + Quality Pack
+
+Cuando usas /simplify (Claude Code skill):
+  1. /simplify revisa el codigo cambiado.
+  2. Despues de aceptar sugerencias: correr prettier --write.
+  3. Despues de prettier: correr eslint --fix (solo reglas auto-corregibles).
+  4. Lo que ESLint no puede auto-corregir: agregar TODO_AI: en el codigo.
+Orden obligatorio: /simplify â†’ prettier â†’ eslint --fix â†’ revisar manualmente lo restante.
+
+
+## Pack: web-comercial (instalado: 2026-07-05)
+
+# Pack: web-comercial â€” Reglas EspecÃ­ficas
+# Aplica cuando projectType = "web-comercial" o se detecta Next.js + cliente final.
+# Cubre: sitios para restaurantes, hoteles, tiendas, empresas, servicios.
+
+---
+
+## WC-RULE-01: Stack obligatorio
+
+- Framework: Next.js 15 (App Router)
+- Estilos: Tailwind CSS â€” nunca CSS inline ni styled-components
+- TipografÃ­a: Google Fonts via next/font â€” nunca CDN link externo
+- ImÃ¡genes: next/image siempre â€” nunca <img> directo
+- Iconos: lucide-react o heroicons â€” nunca SVGs inline en JSX
+
+## WC-RULE-02: Estructura de carpetas
+
+```
+src/
+  app/
+    layout.tsx          â† metadata global, fuentes, analytics
+    page.tsx            â† landing principal
+    (secciones)/        â† rutas adicionales si aplica
+  components/
+    ui/                 â† botones, cards, inputs reutilizables
+    sections/           â† Hero, About, Menu, Gallery, Contact, etc.
+    layout/             â† Navbar, Footer
+  lib/
+    utils.ts            â† cn(), formatPrice(), etc.
+  data/
+    content.ts          â† TODO el texto del sitio en un solo archivo
+```
+
+Regla crÃ­tica: TODO el contenido editable va en src/data/content.ts.
+El cliente cambia texto ahÃ­, no en los componentes.
+
+## WC-RULE-03: Secciones segÃºn tipo de cliente
+
+### Restaurante
+Obligatorias: Hero, Menu, Gallery, About, Contact, Footer
+Opcionales: Reservas, Delivery, Testimonials, Hours
+
+### Hotel / Hospedaje
+Obligatorias: Hero, Rooms, Amenities, Gallery, Booking, Contact, Footer
+Opcionales: About, Testimonials, Location, Policies
+
+### Tienda / E-commerce simple
+Obligatorias: Hero, Products, Features, About, Contact, Footer
+Opcionales: Testimonials, FAQ, Shipping info
+
+### Empresa / Corporativo
+Obligatorias: Hero, Services, About, Team, Contact, Footer
+Opcionales: Portfolio, Testimonials, Clients, FAQ
+
+### App de servicios (plomero, electricista, etc.)
+Obligatorias: Hero, Services, HowItWorks, About, Contact, Footer
+Opcionales: Testimonials, FAQ, Coverage area
+
+## WC-RULE-04: DiseÃ±o visual
+
+- Paleta: definir mÃ¡ximo 3 colores (primary, secondary, neutral) en tailwind.config.ts
+- Fuentes: mÃ¡ximo 2 (una para headings, una para body)
+- Modo oscuro: solo si el cliente lo pide explÃ­citamente â€” default LIGHT
+- Responsive obligatorio: mobile-first. Probar en 375px, 768px, 1280px
+- Animaciones: solo Framer Motion o CSS transitions simples. Sin GSAP.
+- ImÃ¡genes hero: siempre con overlay semitransparente para legibilidad del texto
+
+## WC-RULE-05: Performance (Core Web Vitals)
+
+- LCP < 2.5s: imagen hero con priority={true} en next/image
+- CLS = 0: definir width/height en todas las imÃ¡genes
+- FID < 100ms: no bloquear el thread principal en el render inicial
+- Fonts: preload via next/font, nunca @import en CSS
+- No cargar librerÃ­as pesadas en el bundle principal (mapas, charts: dynamic import)
+
+## WC-RULE-06: SEO obligatorio
+
+En cada page.tsx exportar metadata:
+```typescript
+export const metadata: Metadata = {
+  title: "Nombre del negocio â€” Ciudad | Tipo de negocio",
+  description: "DescripciÃ³n de 150-160 chars con keyword principal",
+  openGraph: { title, description, images },
+}
+```
+- Alt text en TODAS las imÃ¡genes
+- Headings en orden: un solo H1 por pÃ¡gina, H2 para secciones
+- Schema markup (JSON-LD) para restaurantes/hoteles/negocios locales
+
+## WC-RULE-07: Formulario de contacto
+
+- Siempre usar React Hook Form + Zod para validaciÃ³n
+- Backend: Resend o Nodemailer para emails â€” nunca exponer credenciales
+- Variables sensibles: solo en .env.local, nunca hardcodeadas
+- Feedback visual: loading state + success + error en el botÃ³n de envÃ­o
+
+## WC-RULE-08: Deploy
+
+- Plataforma: Vercel (default) o Netlify
+- Variables de entorno: configurar en el panel del proveedor, no en el repo
+- Dominio custom: documentar pasos en .ai/STATE.md
+- Checklist pre-deploy: lighthouse score > 90, sin console.errors, favicon configurado
+
+## WC-RULE-09: Entrega al cliente
+
+Antes de cerrar el proyecto:
+1. Crear README-CLIENTE.md con instrucciones para editar contenido
+2. Documentar cÃ³mo cambiar: textos, imÃ¡genes, colores, menÃº de nav
+3. Exportar credenciales de deploy en documento separado (nunca en el repo)
+4. Screenshot de cada secciÃ³n en desktop y mobile
+
+
+## Pack: react (instalado: 2026-07-05)
+
+# Pack: react â€” Reglas Especificas
+# Se agregan al .cursorrules base cuando este pack esta activo.
+
+---
+
+## RX-RULE-01: Componentes
+
+Componentes sin estado por defecto. Estado local solo cuando es necesario.
+No compartir estado entre componentes via props drilling de >2 niveles: usar context o store.
+Preferir composicion sobre herencia.
+Nombre de componente: PascalCase siempre.
+
+## RX-RULE-02: Hooks
+
+No usar useEffect para derivar estado: usar useMemo.
+useEffect limpio: siempre retornar cleanup si hay subscripciones o timers.
+No crear custom hooks hasta que la logica se repita en >2 componentes.
+useMemo / useCallback: solo cuando hay problema de rendimiento medido, no preventivamente.
+Dependencias de useEffect siempre completas (regla exhaustive-deps).
+
+## RX-RULE-03: Estilos
+
+Tokens Tailwind o variables CSS â€” nunca valores hex/px inline en JSX.
+No mezclar Tailwind con CSS-in-JS en el mismo componente.
+Clases condicionales: clsx() o cn(). Nunca string concatenation.
+No !important salvo para overrides de librerias terceras, documentado.
+
+## RX-RULE-04: Rendimiento
+
+React.memo solo en componentes con renders frecuentes y props costosas.
+Lazy loading de componentes pesados con React.lazy + Suspense.
+Imagenes: next/image siempre (Next.js). Atributo loading="lazy" en vanilla.
+Evitar re-renders innecesarios: no crear objetos/funciones dentro de JSX sin memo.
+
+## RX-RULE-05: TypeScript
+
+Props interfaces siempre tipadas. Sin any sin justificacion.
+Return type de funciones publicas explicito.
+Types con T, interfaces con I solo si hay convencion previa en el proyecto.
+Preferir type sobre interface para objetos simples.
+
+## RX-RULE-06: Data Fetching
+
+Fetch en el servidor (Server Components) cuando sea posible en Next.js.
+Error boundaries para fetch failures en componentes criticos.
+Loading states siempre presentes cuando hay async.
+No fetch directo a DB desde componentes â€” usar API routes o server actions.
+
+## RX-RULE-07: Formularios
+
+Validacion en cliente Y servidor. Nunca solo en cliente.
+Deshabilitar submit durante envio. Prevenir doble submit.
+Mensajes de error descriptivos y accesibles (aria-describedby).
+
+## RX-RULE-08: Seguridad
+
+No dangerouslySetInnerHTML salvo con sanitizacion documentada.
+Variables de entorno del servidor: NEXT_PUBLIC_ solo para lo realmente publico.
+No exponer API keys en el cliente.
+
+## RX-RULE-09: Scope Rule â€” La Regla Inquebrantable
+# Fuente: Gentleman Programming Book, Cap 15 + Cap 8
+
+"Scope determines structure" â€” sin excepciones.
+
+  Codigo usado por 2+ features â†’ directorio global/shared
+  Codigo usado por 1 feature   â†’ permanece LOCAL en esa feature
+  Sin excepciones              â†’ la regla es estricta
+
+Framework de decision:
+  1. Identificar scope: Â¿cuantas features lo usan?
+  2. Aplicar regla: 1 feature = local, 2+ features = global
+  3. Validar: Â¿la estructura grita lo que hace la app?
+
+## RX-RULE-10: Screaming Architecture â€” Estructura que GRITA
+
+La estructura de carpetas debe comunicar INMEDIATAMENTE lo que hace la app.
+
+CORRECTO â€” Grita funcionalidad:
+  src/features/
+    shopping-cart/      # Es un carrito!
+    user-authentication/ # Autenticacion!
+    task-management/    # Gestion de tareas!
+
+INCORRECTO â€” Agrupacion tecnica:
+  src/
+    components/   # Â¿Que hace la app?
+    containers/   # No dice nada
+    hooks/        # Puramente tecnico
+
+Estructura base obligatoria para proyectos React/Next.js:
+  src/
+    features/         â† modulos por funcionalidad (LOCAL = 1 feature)
+      [feature-name]/
+        [feature].tsx         â† Container principal (mismo nombre que feature)
+        components/           â† componentes secundarios de esta feature
+        services/             â† logica de negocio
+        hooks/                â† hooks de esta feature
+        models.ts             â† tipos/interfaces
+    shared/           â† GLOBAL = 2+ features
+      components/
+      hooks/
+      utils/
+    infrastructure/   â† cross-cutting (api, auth, monitoring)
+
+## RX-RULE-11: Container/Presentational Pattern
+
+Containers: business logic, state, data fetching.
+Presentational: solo UI con props, componentes puros.
+El container principal tiene EL MISMO NOMBRE que la feature.
+
+  âœ… task-management/
+      task-management.tsx      â† Container principal (negocio + estado)
+      components/
+        TaskList.tsx            â† Container secundario (puede tener estado local)
+        TaskItem.tsx            â† Presentational (solo UI)
+
+El container principal coordina: no delegar coordinacion a componentes hijos.
+Los presentationals son reutilizables por definicion â€” si tienen logica de negocio, son containers.
+
+## RX-RULE-12: PROJECT_SPECS.md â€” Especificacion antes de desarrollar
+# Fuente: Gentleman Programming Book, Cap 15
+
+IMPORTANTE: Antes de iniciar desarrollo, crear PROJECT_SPECS.md en la raiz del proyecto.
+Este archivo es el contrato entre el desarrollador, Claude Code y los subagentes.
+
+Contenido minimo obligatorio:
+  ## Project Description      â† que hace el proyecto
+  ## User Stories             â† epics con criterios de aceptacion
+  ## Data Structure           â† interfaces/tipos principales
+  ## Business Rules           â† reglas del dominio
+  ## Technical Notes          â† restricciones tecnicas
+
+Uso: referenciar en comandos a subagentes:
+  > @PROJECT_SPECS.md Use tdd-test-first to create tests for US-002
+
+O incluir en CLAUDE.md del proyecto:
+  ## Project Context
+  @PROJECT_SPECS.md contains all user stories and requirements
+
