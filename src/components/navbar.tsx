@@ -26,7 +26,7 @@ export function Navbar() {
           {site.name}
         </a>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-8 lg:flex">
           {links.map((link) => (
             <a
               key={link.href}
@@ -38,7 +38,7 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <ThemeToggle />
           <a
             href="#contacto"
@@ -48,7 +48,7 @@ export function Navbar() {
           </a>
         </div>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <ThemeToggle />
           <button
             aria-label="Abrir menú"
@@ -61,7 +61,7 @@ export function Navbar() {
       </Container>
 
       {open && (
-        <div className="border-t border-border bg-background md:hidden">
+        <div className="border-t border-border bg-background lg:hidden">
           <Container className="flex flex-col gap-1 py-4">
             {links.map((link) => (
               <a
